@@ -19,6 +19,8 @@ public class StateMachine : MonoBehaviour
 
     public Animator animator;
     public Animator hurtboxAnimator;
+    public IKController animatorIK;
+    public IKController hurtboxAnimatorIK;
     public GameObject models;
 
     [Header("Audio")]
@@ -55,6 +57,9 @@ public class StateMachine : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        animatorIK = animator.GetComponent<IKController>();
+        hurtboxAnimatorIK = hurtboxAnimator.GetComponent<IKController>();
+
         nav = GetComponent<NavMeshAgent>();
         switch(faction)
         {
@@ -84,6 +89,20 @@ public class StateMachine : MonoBehaviour
             case Utility.Factions.Operator:
                 LevelManager.instance.ActiveOperators.Add(this);
                 break;
+        }
+
+        if(AIHeld != null)
+        {
+            animatorIK.ikActive = true;
+            hurtboxAnimatorIK.ikActive = true;
+            if (AIHeld.rHold != null)
+            {
+                animatorIK.rightHandObj = AIHeld.rHold.transform;
+            }
+            if (AIHeld.lHold != null)
+            {
+                animatorIK.leftHandObj = AIHeld.lHold.transform;
+            }
         }
     }
 
@@ -227,7 +246,7 @@ public class StateMachine : MonoBehaviour
 
         if(watchingPlayer)
         {
-            if(Player.instance.tresspassing)
+            if (Player.instance.tresspassing)
             {
                 sus += 25 * Time.deltaTime;
             }
@@ -235,7 +254,11 @@ public class StateMachine : MonoBehaviour
             {
                 sus += 30 * Time.deltaTime;
             }
-            if(sus > 50)
+            if (Player.instance.masked)
+            {
+                sus += 20 * Time.deltaTime;
+            }
+            if (sus > 50)
             {
                 suspicion = Utility.Suspicion.Guarded;
                 if(sus > 75)
@@ -283,6 +306,7 @@ public class StateMachine : MonoBehaviour
                 {
                     LevelManager.instance.ActiveCivilians.Remove(this);
                     LevelManager.instance.FledCivilians.Add(this);
+                    Alert();
                     gameObject.SetActive(false);
                 }
                 
@@ -452,6 +476,10 @@ public class StateMachine : MonoBehaviour
             {
                 sus += 30 * Time.deltaTime;
             }
+            if (Player.instance.masked)
+            {
+                sus += 20 * Time.deltaTime;
+            }
             if (sus > 50)
             {
                 suspicion = Utility.Suspicion.Guarded;
@@ -462,6 +490,58 @@ public class StateMachine : MonoBehaviour
                     {
                         suspicion = Utility.Suspicion.Hunting;
                     }
+                }
+            }
+        }
+
+        if(attitude == Utility.Attitude.Afraid)
+        {
+            int shortest = 0;
+            float shortestDist = 0;
+
+            for (int i = 0; i < LevelManager.instance.fleePoints.Count; i++)
+            {
+                float dist = Vector3.Distance(LevelManager.instance.fleePoints[i].transform.position, lastSeenPos);
+                if (dist > shortestDist)
+                {
+                    shortestDist = dist;
+                    shortest = i;
+                }
+            }
+            //flee point furthest from last seen player position
+            goalPos = LevelManager.instance.fleePoints[shortest].transform.position;
+
+            shortest = 0;
+            shortestDist = Mathf.Infinity;
+
+            for (int i = 0; i < LevelManager.instance.fleePoints.Count; i++)
+            {
+                float dist = Vector3.Distance(LevelManager.instance.fleePoints[i].transform.position, transform.position);
+                if (dist < shortestDist)
+                {
+                    shortestDist = dist;
+                    shortest = i;
+                }
+            }
+            if (shortestDist <= 3)
+            {
+                LevelManager.instance.ActiveSecurity.Remove(this);
+                LevelManager.instance.FledSecurity.Add(this);
+                Alert();
+                gameObject.SetActive(false);
+            }
+        }
+        else
+        {
+            goalPos = pathPoints[currentPathPoint].transform.position;
+
+            if (Vector3.Distance(goalPos, transform.position) < 3)
+            {
+                currentPathPoint++;
+                if (currentPathPoint >= pathPoints.Count)
+                {
+                    currentPathPoint = 0;
+
                 }
             }
         }
@@ -480,6 +560,7 @@ public class StateMachine : MonoBehaviour
                 }
                 break;
             case Utility.Suspicion.Alert:
+                Alert();
                 if (watchingPlayer)
                 {
                     Vector3 directionToTarget = (eyes.transform.position - Player.instance.transform.position).normalized;
@@ -629,7 +710,7 @@ public class StateMachine : MonoBehaviour
 
         if(reactionTime <= 0)
         {
-            if (faction == Utility.Factions.Security)
+            if (faction == Utility.Factions.Security || faction == Utility.Factions.Civilian)
             {
 
                 for (int i = 0; i < LevelManager.instance.ActiveSecurity.Count; i++)
@@ -708,8 +789,10 @@ public class StateMachine : MonoBehaviour
             gun.transform.right = directionToTarget;
             gun.Use();
         }
-        
+    }
 
-        
+    public virtual void DropItem()
+    {
+
     }
 }

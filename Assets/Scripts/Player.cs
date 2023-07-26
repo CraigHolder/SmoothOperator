@@ -28,6 +28,7 @@ public class Player : StateMachine
     public List<Item> hotBar;
     public LayerMask mask;
     public TMPro.TMP_Text infoText;
+    public List<GameObject> hotbarOBJ;
 
     private void Awake()
     {
@@ -37,6 +38,10 @@ public class Player : StateMachine
     // Start is called before the first frame update
     void Start()
     {
+        animatorIK = animator.GetComponent<IKController>();
+        hurtboxAnimatorIK = hurtboxAnimator.GetComponent<IKController>();
+        animatorIK.ikActive = true;
+        hurtboxAnimatorIK.ikActive = true;
         CC = GetComponent<CharacterController>();
         for (int i = 0; i < hotBarSize; i++)
         {
@@ -79,13 +84,25 @@ public class Player : StateMachine
 
                 if(Input.GetKey(KeyCode.E))
                 {
-                    switch(item.type)
+                    DropItem();
+
+                    hotbarOBJ[selectedHotbar].transform.GetChild(1).GetComponent<TMPro.TMP_Text>().text = item.ItemName;
+
+                    switch (item.type)
                     {
                         case Utility.ItemType.Equipment:
                             hotBar[selectedHotbar] = item;
                             item.transform.parent = transform;
                             item.GetComponent<Rigidbody>().isKinematic = true;
 
+                            if(item.rHold != null)
+                            {
+                                animatorIK.rightHandObj = item.rHold.transform;
+                            }
+                            if (item.lHold != null)
+                            {
+                                animatorIK.leftHandObj = item.lHold.transform;
+                            }
                             break;
                         case Utility.ItemType.Gun:
                             hotBar[selectedHotbar] = item;
@@ -93,11 +110,29 @@ public class Player : StateMachine
                             item.GetComponent<Rigidbody>().isKinematic = true;
                             item.transform.localPosition = new Vector3(0,-0.2f,0.5f);
                             item.transform.localRotation = Quaternion.Euler(0,-90,7.4f);
+
+                            if (item.rHold != null)
+                            {
+                                animatorIK.rightHandObj = item.rHold.transform;
+                            }
+                            if (item.lHold != null)
+                            {
+                                animatorIK.leftHandObj = item.lHold.transform;
+                            }
                             break;
                         case Utility.ItemType.Melee:
                             hotBar[selectedHotbar] = item;
                             item.transform.parent = transform;
                             item.GetComponent<Rigidbody>().isKinematic = true;
+
+                            if (item.rHold != null)
+                            {
+                                animatorIK.rightHandObj = item.rHold.transform;
+                            }
+                            if (item.lHold != null)
+                            {
+                                animatorIK.leftHandObj = item.lHold.transform;
+                            }
 
                             break;
                         case Utility.ItemType.Value:
@@ -128,7 +163,33 @@ public class Player : StateMachine
             {
                 if(i - 49 < hotBar.Count)
                 {
+                    if(hotBar[selectedHotbar] != null)
+                    {
+                        hotBar[selectedHotbar].gameObject.SetActive(false);
+                        animatorIK.leftHandObj = null;
+                        animatorIK.rightHandObj = null;
+                    }
+
                     selectedHotbar = i - 49;
+
+                    for (int j = 0; j < hotbarOBJ.Count; j++)
+                    {
+                        hotbarOBJ[j].transform.GetChild(0).gameObject.SetActive(false);
+                        
+                    }
+                    hotbarOBJ[selectedHotbar].transform.GetChild(0).gameObject.SetActive(true);
+                    if (hotBar[selectedHotbar] != null)
+                    {
+                        hotBar[selectedHotbar].gameObject.SetActive(true);
+                        if (hotBar[selectedHotbar].rHold != null)
+                        {
+                            animatorIK.rightHandObj = hotBar[selectedHotbar].rHold.transform;
+                        }
+                        if (hotBar[selectedHotbar].lHold != null)
+                        {
+                            animatorIK.leftHandObj = hotBar[selectedHotbar].lHold.transform;
+                        }
+                    }
                 }
             }
         }
@@ -143,6 +204,10 @@ public class Player : StateMachine
             {
                 armed = false;
             }
+        }
+        else
+        {
+            armed = false;
         }
 
         if (Input.GetMouseButton(0))
@@ -177,6 +242,26 @@ public class Player : StateMachine
                     hotBar[selectedHotbar].Reload();
                 }
             }
+        }
+
+        if(Input.GetKey(KeyCode.Q))
+        {
+            DropItem();
+        }
+    }
+
+    public override void DropItem()
+    {
+        if (hotBar[selectedHotbar] != null)
+        {
+            hotbarOBJ[selectedHotbar].transform.GetChild(1).GetComponent<TMPro.TMP_Text>().text = "Empty";
+            hotBar[selectedHotbar].transform.parent = null;
+            hotBar[selectedHotbar].transform.position += Vector3.up;
+            hotBar[selectedHotbar].GetComponent<Rigidbody>().isKinematic = false;
+            hotBar[selectedHotbar] = null;
+
+            animatorIK.leftHandObj = null;
+            animatorIK.rightHandObj = null;
         }
     }
 

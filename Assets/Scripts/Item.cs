@@ -8,6 +8,9 @@ public class Item : MonoBehaviour
     public string ItemDescription;
     public Utility.ItemType type;
     public int Value = 1;
+    public GameObject rHold;
+    public GameObject lHold;
+
     [Header("Use")]
     public int uses = 1;
     public int maxUses = 1;
