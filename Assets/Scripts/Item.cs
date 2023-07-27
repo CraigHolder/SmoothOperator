@@ -2,10 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Item : MonoBehaviour
+public class Item : Info
 {
-    public string ItemName;
-    public string ItemDescription;
     public Utility.ItemType type;
     public int Value = 1;
     public GameObject rHold;
@@ -17,6 +15,12 @@ public class Item : MonoBehaviour
     public int ExtraUses = 1;
     public float useDelay = 1;
     public float useTime = 0;
+
+    [Header("Sound")]
+    public float useVolume = 1;
+    public int useClip = -1;
+    public int reloadClip = 7;
+    public int emptyClip = 0;
 
     // Start is called before the first frame update
     void Start()
@@ -30,10 +34,11 @@ public class Item : MonoBehaviour
         useTime -= Time.deltaTime;
     }
 
-    public virtual void Use()
+    public virtual bool Use()
     {
         uses--;
         useTime = useDelay;
+        return true;
     }
     public virtual void AltUse()
     {

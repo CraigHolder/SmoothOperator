@@ -20,7 +20,7 @@ public class Gun : Item
     //    base.Update();
     //}
 
-    public override void Use()
+    public override bool Use()
     {
         if (useTime <= 0)
         {
@@ -42,8 +42,10 @@ public class Gun : Item
                         hurt.parent.health -= damage * hurt.multiplier;
                     }
                 }
+                return true;
             }
         }
+        return false;
     }
 
 }
