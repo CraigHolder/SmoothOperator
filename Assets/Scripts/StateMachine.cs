@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-public class StateMachine : MonoBehaviour
+public class StateMachine : Damagable
 {
     public Utility.Factions faction;
     public Utility.Attitude attitude;
@@ -12,10 +12,9 @@ public class StateMachine : MonoBehaviour
     public List<Utility.StatusEffects> statusEffects;
     public List<float> statusEffectLength;
 
-    public float health = 100;
+    
     public float sus = 0;
     public float speed = 0;
-    float reactionTime = 1;
 
     public Animator animator;
     public Animator hurtboxAnimator;
@@ -24,7 +23,7 @@ public class StateMachine : MonoBehaviour
     public GameObject models;
 
     [Header("Audio")]
-    AudioSource Audio;
+    protected AudioSource Audio;
     [SerializeField]
     AudioSource walkAudio;
 
@@ -49,6 +48,12 @@ public class StateMachine : MonoBehaviour
     public LayerMask concernMask;
     public LayerMask obstructionMask;
     Vector3 lastSeenPos;
+    public GameObject AIInfo;
+    float reactionTime = 1;
+    public bool wanders = false;
+
+
+
     [Header("AIInventory")]
     public Item AIHeld;
     public List<Item> AIItems;
@@ -61,7 +66,14 @@ public class StateMachine : MonoBehaviour
         hurtboxAnimatorIK = hurtboxAnimator.GetComponent<IKController>();
 
         nav = GetComponent<NavMeshAgent>();
-        switch(faction)
+
+        AIInfo.transform.parent = LevelManager.instance.AIInfos.transform;
+        AIInfo.GetComponent<Info>().InfoName = InfoName;
+        AIInfo.GetComponent<Info>().InfoDescription = InfoDescription;
+
+        Audio = GetComponent<AudioSource>();
+
+        switch (faction)
         {
             case Utility.Factions.Civilian:
                 LevelManager.instance.ActiveCivilians.Add(this);
@@ -107,9 +119,11 @@ public class StateMachine : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    void LateUpdate()
     {
-        if(healthLevel == Utility.healthLevel.Dead || !gameObject.activeSelf)
+        speed = ((Ath + 2f) / 2f);
+
+        if (healthLevel == Utility.healthLevel.Dead || !gameObject.activeSelf)
         {
             return;
         }
@@ -118,10 +132,14 @@ public class StateMachine : MonoBehaviour
         {
             healthLevel = Utility.healthLevel.Wounded;
             attitude = Utility.Attitude.Afraid;
+            speed /= 2;
+            AIInfo.GetComponent<Info>().InfoDescription = "Wounded";
+
             if (health < 10)
             {
                 healthLevel = Utility.healthLevel.Unconsious;
-                nav.destination = transform.position;
+                AIInfo.GetComponent<Info>().InfoDescription = "Unconsious";
+                Path(transform.position);
 
                 switch (faction)
                 {
@@ -151,7 +169,8 @@ public class StateMachine : MonoBehaviour
                 if (health < 0)
                 {
                     healthLevel = Utility.healthLevel.Dead;
-                    nav.destination = transform.position;
+                    AIInfo.GetComponent<Info>().InfoDescription = "Dead";
+                    Path(transform.position);
 
                     switch (faction)
                     {
@@ -215,7 +234,9 @@ public class StateMachine : MonoBehaviour
             return;
         }
 
-        nav.destination = goalPos;
+        Path();
+        AIInfo.transform.position = transform.position;
+
         animator.SetFloat("Walk", 1);
         hurtboxAnimator.SetFloat("Walk", 1);
         switch (faction)
@@ -234,6 +255,39 @@ public class StateMachine : MonoBehaviour
                 break;
         }
 
+    }
+
+    public void FollowPath()
+    {
+        if (wanders)
+        {
+            if (!nav.hasPath)
+            {
+                goalPos = pathPoints[currentPathPoint].transform.position;
+
+                if (Vector3.Distance(pathPoints[currentPathPoint].transform.position, transform.position) < 3)
+                {
+                    currentPathPoint++;
+                    if (currentPathPoint >= pathPoints.Count)
+                    {
+                        currentPathPoint = 0;
+
+                    }
+                }
+            }
+            else
+            {
+                if (Vector3.Distance(pathPoints[currentPathPoint].transform.position, transform.position) < 3)
+                {
+                    currentPathPoint++;
+                    if (currentPathPoint >= pathPoints.Count)
+                    {
+                        currentPathPoint = 0;
+
+                    }
+                }
+            }
+        }
     }
 
     public void CivilianBrain()
@@ -261,16 +315,17 @@ public class StateMachine : MonoBehaviour
             if (sus > 50)
             {
                 suspicion = Utility.Suspicion.Guarded;
-                if(sus > 75)
+                if (sus > 75)
                 {
                     suspicion = Utility.Suspicion.Alert;
-                    if(sus > 90)
+                    if (sus > 90)
                     {
                         suspicion = Utility.Suspicion.Hunting;
                     }
                 }
             }
         }
+
 
         switch (attitude)
         {
@@ -313,17 +368,7 @@ public class StateMachine : MonoBehaviour
                 break;
             case Utility.Attitude.Friendly:
 
-                goalPos = pathPoints[currentPathPoint].transform.position;
-
-                if(Vector3.Distance(goalPos, transform.position) < 3)
-                {
-                    currentPathPoint++;
-                    if(currentPathPoint >= pathPoints.Count)
-                    {
-                        currentPathPoint = 0;
-
-                    }
-                }
+                FollowPath();
 
 
                 if (watchingPlayer && Player.instance.armed && (int)suspicion >= 1)
@@ -370,17 +415,7 @@ public class StateMachine : MonoBehaviour
                 break;
             case Utility.Attitude.Calm:
 
-                goalPos = pathPoints[currentPathPoint].transform.position;
-
-                if (Vector3.Distance(goalPos, transform.position) < 3)
-                {
-                    currentPathPoint++;
-                    if (currentPathPoint >= pathPoints.Count)
-                    {
-                        currentPathPoint = 0;
-
-                    }
-                }
+                FollowPath();
 
 
                 if (watchingPlayer && Player.instance.armed && (int)suspicion >= 1)
@@ -425,6 +460,8 @@ public class StateMachine : MonoBehaviour
 
                 break;
             case Utility.Attitude.Angry:
+                FollowPath();
+
                 float distA = Mathf.Infinity;
                 int closestA = 0;
 
@@ -474,27 +511,29 @@ public class StateMachine : MonoBehaviour
             }
             if (Player.instance.armed)
             {
-                sus += 30 * Time.deltaTime;
+                sus += 50 * Time.deltaTime;
             }
             if (Player.instance.masked)
             {
-                sus += 20 * Time.deltaTime;
+                sus += 50 * Time.deltaTime;
             }
-            if (sus > 50)
+            
+        }
+
+        if (sus > 50)
+        {
+            suspicion = Utility.Suspicion.Guarded;
+            if (sus > 75)
             {
-                suspicion = Utility.Suspicion.Guarded;
-                if (sus > 75)
+                Alert();
+                if (sus > 90)
                 {
-                    Alert();
-                    if (sus > 90)
-                    {
-                        suspicion = Utility.Suspicion.Hunting;
-                    }
+                    suspicion = Utility.Suspicion.Hunting;
                 }
             }
         }
 
-        if(attitude == Utility.Attitude.Afraid)
+        if (attitude == Utility.Attitude.Afraid)
         {
             int shortest = 0;
             float shortestDist = 0;
@@ -533,17 +572,7 @@ public class StateMachine : MonoBehaviour
         }
         else
         {
-            goalPos = pathPoints[currentPathPoint].transform.position;
-
-            if (Vector3.Distance(goalPos, transform.position) < 3)
-            {
-                currentPathPoint++;
-                if (currentPathPoint >= pathPoints.Count)
-                {
-                    currentPathPoint = 0;
-
-                }
-            }
+            FollowPath();
         }
 
         switch(suspicion)
@@ -616,32 +645,75 @@ public class StateMachine : MonoBehaviour
         }
         //WalkSound("sand");
     }
-    void StopMoving()
-    {
-        nav.SetDestination(transform.position);
-        nav.speed = speed;
-        StopWalk();
-    }
+    //void StopMoving()
+    //{
+    //    nav.SetDestination(transform.position);
+    //    nav.speed = speed;
+    //    StopWalk();
+    //}
 
-    public void Hear(Vector3 v)
+    public void Hear(Vector3 v, float volume)
     {
         if (!statusEffects.Contains(Utility.StatusEffects.Stunned))
         {
-            nav.SetDestination(v);
-            nav.speed = speed;
+            switch (faction)
+            {
+                case Utility.Factions.Civilian:
+                    
+                    if(volume > 100)
+                    {
+                        if(attitude != Utility.Attitude.Angry)
+                        {
+                            attitude = Utility.Attitude.Afraid;
+                        }
+                        sus += volume - 10;
+                    }
+                    else if(volume > 10)
+                    {
+                        //Path(v);
+                        goalPos = v;
+                        sus += volume - 10;
+                    }
+                    
+                    break;
+                case Utility.Factions.Security:
+                    if (volume > 500)
+                    {
+                        if (attitude != Utility.Attitude.Angry)
+                        {
+                            attitude = Utility.Attitude.Afraid;
+                        }
+                        sus += volume - 10;
+                    }
+                    else if (volume > 10)
+                    {
+                        goalPos = v;
+                        sus += volume - 10;
+                    }
+                    break;
+                case Utility.Factions.Criminal:
+                    break;
+                case Utility.Factions.Operator:
+                    break;
+                default:
+                    break;
+            }
+
         }
     }
 
     private void FieldOfViewCheck()
     {
         Collider[] rangeChecks = Physics.OverlapSphere(transform.position, visionRange, playerMask);
-
+        //Vector3 debugT = eyes.transform.forward;//vector = Quaternion.AngleAxis(-45, Vector3.up) * vector;
+        Debug.DrawRay(eyes.position, ( Quaternion.AngleAxis(-(visionAngle / 2), Vector3.up) * eyes.transform.forward) * visionRange, Color.blue);
+        Debug.DrawRay(eyes.position, (Quaternion.AngleAxis((visionAngle / 2), Vector3.up) * eyes.transform.forward) * visionRange, Color.blue);
         if (rangeChecks.Length != 0)
         {
             Transform target = rangeChecks[0].transform;
             Vector3 directionToTarget = (target.position - eyes.transform.position).normalized;
 
-            if (Vector3.Angle(transform.forward, directionToTarget) < visionAngle / 2)
+            if (Vector3.Angle(eyes.transform.forward, directionToTarget) < visionAngle / 2)
             {
                 float distanceToTarget = Vector3.Distance(eyes.position, new Vector3(target.position.x, target.position.y + Random.Range(2, 6), target.position.z));
                 Debug.DrawRay(eyes.position, directionToTarget * (distanceToTarget), Color.green, 1f);
@@ -670,9 +742,9 @@ public class StateMachine : MonoBehaviour
         //suspisous objects
         Collider[] rangeChecks2 = Physics.OverlapSphere(transform.position, visionRange, concernMask);
 
-        if (rangeChecks2.Length != 0)
+        for (int i = 0; i < rangeChecks2.Length; i++)
         {
-            Transform target = rangeChecks2[0].transform;
+            Transform target = rangeChecks2[i].transform;
             Vector3 directionToTarget = (target.position - eyes.transform.position).normalized;
 
             if (Vector3.Angle(transform.forward, directionToTarget) < visionAngle / 2)
@@ -681,7 +753,13 @@ public class StateMachine : MonoBehaviour
                 Debug.DrawRay(eyes.position, directionToTarget * (distanceToTarget), Color.green, 0.1f);
                 if (!Physics.Raycast(eyes.position, directionToTarget, distanceToTarget, obstructionMask))
                 {
-                    sus += 20 * Time.deltaTime;
+                    Computer PC = target.GetComponent<Computer>();
+                    if(PC != null)
+                    {
+                        sus += PC.concern;
+                    }
+                    //sus += 20 * Time.deltaTime;
+                    //set computer screens linked to the camera to convern layer
                 }
 
             }
@@ -743,51 +821,77 @@ public class StateMachine : MonoBehaviour
         Audio.clip = AudioUtility.sounds[index];
         Audio.Play();
     }
-    void WalkSound(string ground)
+
+    public void MakeSound(float volume)
     {
-        if (walkAudio.isPlaying)
+        Collider[] rangeChecks = Physics.OverlapSphere(transform.position, volume);
+
+        for (int i = 0; i < rangeChecks.Length; i++)
         {
-            return;
+            if(rangeChecks[i].tag == "AI")
+            {
+                StateMachine ai = rangeChecks[i].GetComponent<StateMachine>();
+                ai.Hear(transform.position, volume);
+            }
         }
-        AudioClip temp = null;
-        switch (ground)
-        {
-            case "sand":
-                temp = AudioUtility.sounds[Random.Range(77, 85)];
-                break;
-            case "stone":
-                temp = AudioUtility.sounds[Random.Range(87, 95)];
-                break;
-            case "wood":
-                temp = AudioUtility.sounds[Random.Range(97, 99)];
-                break;
-            case "water":
-                temp = AudioUtility.sounds[Random.Range(95, 97)];
-                break;
-            default:
-                temp = AudioUtility.sounds[Random.Range(77, 85)];
-                break;
-        }
-        walkAudio.clip = temp;
-        walkAudio.Play();
+
+
     }
-    public void StopWalk()
-    {
-        walkAudio.Stop();
-    }
+    //void WalkSound(string ground)
+    //{
+    //    if (walkAudio.isPlaying)
+    //    {
+    //        return;
+    //    }
+    //    AudioClip temp = null;
+    //    switch (ground)
+    //    {
+    //        case "sand":
+    //            temp = AudioUtility.sounds[Random.Range(77, 85)];
+    //            break;
+    //        case "stone":
+    //            temp = AudioUtility.sounds[Random.Range(87, 95)];
+    //            break;
+    //        case "wood":
+    //            temp = AudioUtility.sounds[Random.Range(97, 99)];
+    //            break;
+    //        case "water":
+    //            temp = AudioUtility.sounds[Random.Range(95, 97)];
+    //            break;
+    //        default:
+    //            temp = AudioUtility.sounds[Random.Range(77, 85)];
+    //            break;
+    //    }
+    //    walkAudio.clip = temp;
+    //    walkAudio.Play();
+    //}
+    //public void StopWalk()
+    //{
+    //    walkAudio.Stop();
+    //}
 
     void Shoot()
     {
         Gun gun = (Gun)AIHeld;
-        if (gun.uses == 0)
+        if (gun.useTime <= 0 && gun.uses == 0)
         {
             gun.Reload();
+            PlayAudio(gun.reloadClip);
         }
         else
         {
             Vector3 directionToTarget = (Player.instance.transform.position - gun.tip.transform.position).normalized;
             gun.transform.right = directionToTarget;
-            gun.Use();
+            if(gun.Use())
+            {
+                PlayAudio(gun.useClip);
+                MakeSound(gun.useVolume);
+                if (gun.uses == 0)
+                {
+                    PlayAudio(gun.emptyClip);
+                }
+            }
+            
         }
     }
 

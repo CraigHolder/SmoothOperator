@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Hurtbox : MonoBehaviour
 {
-    public StateMachine parent;
+    public Damagable parent;
     public float multiplier = 1;
 
 
@@ -12,6 +12,10 @@ public class Hurtbox : MonoBehaviour
     void Awake()
     {
         parent = GetComponentInParent<StateMachine>();
+        if(parent == null)
+        {
+            parent = GetComponentInParent<SecurityCamera>();
+        }
     }
 
     // Update is called once per frame

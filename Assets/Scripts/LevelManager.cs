@@ -5,6 +5,7 @@ using UnityEngine;
 public class LevelManager : MonoBehaviour
 {
     public static LevelManager instance;
+    public GameObject AIInfos;
 
     [Header("LevelInfo")]
     public List<GameObject> extractions;
