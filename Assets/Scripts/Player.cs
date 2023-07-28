@@ -346,8 +346,8 @@ public class Player : StateMachine
             animator.SetBool("Crouch", false);
             hurtboxAnimator.SetBool("Crouch", false);
             Camera.main.transform.localPosition = new Vector3(0, 0.65f, 0f);
-            CC.height = 2;
-            CC.radius = 0.5f;
+            CC.height = 1.75f;
+            CC.radius = 0.3f;
             models.transform.localPosition = new Vector3(0, -1.06f, 0);
             models.transform.localScale = new Vector3(1, 1, 1);
         }
