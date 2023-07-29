@@ -233,7 +233,7 @@ public class Player : StateMachine
                 {
                     if(hotBar[selectedHotbar].useClip != -1)
                     {
-                        PlayAudio(hotBar[selectedHotbar].useClip);
+                        PlayAudio(hotBar[selectedHotbar].useClip, Utility.audioType.Useing);
                         MakeSound(hotBar[selectedHotbar].useVolume);
                     }
 
@@ -241,7 +241,7 @@ public class Player : StateMachine
                 {
                     if (hotBar[selectedHotbar].emptyClip != -1 && Input.GetMouseButtonDown(0))
                     {
-                        PlayAudio(hotBar[selectedHotbar].emptyClip);
+                        PlayAudio(hotBar[selectedHotbar].emptyClip, Utility.audioType.Useing);
 
                     }
                 }
@@ -273,7 +273,7 @@ public class Player : StateMachine
                     hotBar[selectedHotbar].Reload();
                     if (hotBar[selectedHotbar].reloadClip != -1)
                     {
-                        PlayAudio(hotBar[selectedHotbar].reloadClip);
+                        PlayAudio(hotBar[selectedHotbar].reloadClip, Utility.audioType.Useing);
 
                     }
                 }
@@ -308,6 +308,7 @@ public class Player : StateMachine
         if (Input.GetKey(KeyCode.W))
         {
             movement += transform.forward;
+            
         }
         if (Input.GetKey(KeyCode.S))
         {
@@ -352,13 +353,22 @@ public class Player : StateMachine
             models.transform.localScale = new Vector3(1, 1, 1);
         }
 
-        if (movement.magnitude != 0)
+        if (movement.magnitude != 0 && CC.isGrounded)
         {
-            animator.SetFloat("Walk", 1);
-            hurtboxAnimator.SetFloat("Walk", 1);
+            moveAudioDelay -= Time.deltaTime * ((Ath + 2) / 2f);
+            if(moveAudioDelay <= 0)
+            {
+                moveAudioDelay = 1.5f;//0.5f;
+                PlayAudio(Random.Range(0, AudioUtility.walkSounds.Count), Utility.audioType.Walking);
+                animator.SetFloat("Walk", 1);
+                hurtboxAnimator.SetFloat("Walk", 1);
+            }
+                
+            
         }
         else
         {
+
             animator.SetFloat("Walk", 0);
             hurtboxAnimator.SetFloat("Walk", 0);
         }
@@ -366,6 +376,7 @@ public class Player : StateMachine
         //Base speed
         movement = movement.normalized;
         movement *= ((Ath + 2) / 2f);
+
 
         //Sprint
         if (Input.GetKey(KeyCode.LeftShift))

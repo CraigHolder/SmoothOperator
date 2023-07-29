@@ -20,6 +20,20 @@ public class Computer : Damagable
     // Update is called once per frame
     void Update()
     {
+        if(health <= 0)
+        {
+            this.enabled = false;
+            //head.GetComponent<Rigidbody>().isKinematic = false;
+            gameObject.layer = 0;
+            InfoDescription = "Destroyed";
+            online = false;
+            for (int i = 0; i < SecurityCamera.allCams.Count; i++)
+            {
+                SecurityCamera.allCams[i].onlinePCs.Remove(this);
+            }
+
+        }
+
         concern = 0;
     }
 }
