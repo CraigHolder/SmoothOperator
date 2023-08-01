@@ -26,6 +26,7 @@ public class SecurityCamera : Damagable
 
     void Awake()
     {
+
         if (allCams == null)
         {
             allCams = new List<SecurityCamera>();
@@ -35,11 +36,14 @@ public class SecurityCamera : Damagable
     // Start is called before the first frame update
     void Start()
     {
-        for (int i = 0; i < Computer.allPCs.Count; i++)
+        if(Computer.allPCs != null)
         {
-            if(Computer.allPCs[i].online)
+            for (int i = 0; i < Computer.allPCs.Count; i++)
             {
-                onlinePCs.Add(Computer.allPCs[i]);
+                if (Computer.allPCs[i].online)
+                {
+                    onlinePCs.Add(Computer.allPCs[i]);
+                }
             }
         }
         //onlinePCs
