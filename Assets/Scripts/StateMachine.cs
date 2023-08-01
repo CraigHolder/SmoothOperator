@@ -11,7 +11,7 @@ public class StateMachine : Damagable
     public Utility.Suspicion suspicion;
     public List<Utility.StatusEffects> statusEffects;
     public List<float> statusEffectLength;
-
+    public bool male = true;
     
     public float sus = 0;
     public float speed = 0;
@@ -26,6 +26,9 @@ public class StateMachine : Damagable
     protected AudioSource Audio;
     [SerializeField]
     AudioSource walkAudio;
+    int lastClip = -1;
+    Utility.audioType lastAduioType = Utility.audioType.Useing;
+    protected float moveAudioDelay = 0.5f;
 
     [Header("Skills")]
     public int CQC = 1;
@@ -39,7 +42,7 @@ public class StateMachine : Damagable
     public bool watchingPlayer = false;
     NavMeshAgent nav;
     public Vector3 goalPos;
-    List<GameObject> pathPoints = new List<GameObject>();
+    public List<GameObject> pathPoints = new List<GameObject>();
     int currentPathPoint = 0;
     public Transform eyes;
     public float visionRange = 10;
@@ -52,6 +55,9 @@ public class StateMachine : Damagable
     float reactionTime = 1;
     public bool wanders = false;
 
+    bool talking = false;
+    public float talkDuration = 0;
+    public GameObject talkPartner;
 
 
     [Header("AIInventory")]
@@ -73,35 +79,39 @@ public class StateMachine : Damagable
 
         Audio = GetComponent<AudioSource>();
 
-        switch (faction)
+        if(pathPoints.Count <= 0)
         {
-            case Utility.Factions.Civilian:
-                LevelManager.instance.ActiveCivilians.Add(this);
+            switch (faction)
+            {
+                case Utility.Factions.Civilian:
+                    LevelManager.instance.ActiveCivilians.Add(this);
 
-                int pointAmount = Random.Range(1, 20);
-                for (int i = 0; i < pointAmount; i++)
-                {
-                    pathPoints.Add(LevelManager.instance.pathPoints[Random.Range(0, LevelManager.instance.pathPoints.Count)]);
-                }
+                    int pointAmount = Random.Range(1, 20);
+                    for (int i = 0; i < pointAmount; i++)
+                    {
+                        pathPoints.Add(LevelManager.instance.pathPoints[Random.Range(0, LevelManager.instance.pathPoints.Count)]);
+                    }
 
 
-                break;
-            case Utility.Factions.Security:
-                LevelManager.instance.ActiveSecurity.Add(this);
+                    break;
+                case Utility.Factions.Security:
+                    LevelManager.instance.ActiveSecurity.Add(this);
 
-                int pointAmount2 = Random.Range(1, 20);
-                for (int i = 0; i < pointAmount2; i++)
-                {
-                    pathPoints.Add(LevelManager.instance.patrolPoints[Random.Range(0, LevelManager.instance.patrolPoints.Count)]);
-                }
-                break;
-            case Utility.Factions.Criminal:
-                LevelManager.instance.ActiveCriminals.Add(this);
-                break;
-            case Utility.Factions.Operator:
-                LevelManager.instance.ActiveOperators.Add(this);
-                break;
+                    int pointAmount2 = Random.Range(1, 20);
+                    for (int i = 0; i < pointAmount2; i++)
+                    {
+                        pathPoints.Add(LevelManager.instance.patrolPoints[Random.Range(0, LevelManager.instance.patrolPoints.Count)]);
+                    }
+                    break;
+                case Utility.Factions.Criminal:
+                    LevelManager.instance.ActiveCriminals.Add(this);
+                    break;
+                case Utility.Factions.Operator:
+                    LevelManager.instance.ActiveOperators.Add(this);
+                    break;
+            }
         }
+        
 
         if(AIHeld != null)
         {
@@ -122,6 +132,13 @@ public class StateMachine : Damagable
     void LateUpdate()
     {
         speed = ((Ath + 2f) / 2f);
+
+        moveAudioDelay -= Time.deltaTime * speed;
+        if(moveAudioDelay <= 0)
+        {
+            moveAudioDelay = 1.5f;//0.5f;
+            PlayAudio(Random.Range(0, AudioUtility.walkSounds.Count), Utility.audioType.Walking);
+        }
 
         if (healthLevel == Utility.healthLevel.Dead || !gameObject.activeSelf)
         {
@@ -290,6 +307,70 @@ public class StateMachine : Damagable
         }
     }
 
+    public void TalkCheck()
+    {
+        if(talking)
+        {
+            talkDuration -= Time.deltaTime;
+            if(talkPartner)
+            {
+                //Vector3 directionToTarget = (talkPartner.transform.position - eyes.transform.position).normalized;
+                //Vector3 directionToTarget = (eyes.transform.position - talkPartner.transform.position).normalized;
+
+                goalPos = transform.position;//talkPartner.transform.position + (directionToTarget * 2);
+                transform.LookAt(talkPartner.transform);
+                //goalPos = talkPartner.transform.position;
+            }
+            if(talkDuration <=0)
+            {
+                talking = false;
+                talkPartner = null;
+            }
+            else
+            {
+                if(Random.Range(0f, 100f) > 99.9f)
+                {
+                    if(male)
+                    {
+
+                        PlayAudio(Random.Range(0, 18), Utility.audioType.Talking);
+                    }
+                    else
+                    {
+                        PlayAudio(Random.Range(18, 36), Utility.audioType.Talking);
+                    }
+                }
+            }
+        }
+        else
+        {
+            Collider[] rangeChecks = Physics.OverlapSphere(transform.position, 4);
+
+            for (int i = 0; i < rangeChecks.Length; i++)
+            {
+                if (rangeChecks[i].tag == "AI" && rangeChecks[i].gameObject != gameObject)
+                {
+                    StateMachine ai = rangeChecks[i].GetComponent<StateMachine>();
+                    if (Random.Range(0f, 100f) > 99.99f)
+                    {
+                        if(!ai.talking)
+                        {
+                            float Rand = Random.Range(2, 20);
+                            ai.talkDuration = Rand;
+                            talkDuration = Rand;
+                            ai.talking = true;
+                            talking = true;
+                            talkPartner = ai.gameObject;
+                            ai.talkPartner = gameObject;
+                            transform.LookAt(talkPartner.transform);
+                        }
+                    }
+                }
+            }
+        }
+        
+    }
+
     public void CivilianBrain()
     {
         if (!statusEffects.Contains(Utility.StatusEffects.Stunned))
@@ -410,6 +491,10 @@ public class StateMachine : Damagable
                         attitude = Utility.Attitude.Afraid;
                     }
                 }
+                else
+                {
+                    TalkCheck();
+                }
                     
 
                 break;
@@ -457,6 +542,10 @@ public class StateMachine : Damagable
                         attitude = Utility.Attitude.Afraid;
                     }
                 }
+                else
+                {
+                    TalkCheck();
+                }
 
                 break;
             case Utility.Attitude.Angry:
@@ -489,8 +578,8 @@ public class StateMachine : Damagable
                 {
                     attitude = Utility.Attitude.Afraid;
                 }
-                
 
+                TalkCheck();
                 break;
         }
     }
@@ -573,19 +662,37 @@ public class StateMachine : Damagable
         else
         {
             FollowPath();
+
+            if (watchingPlayer && Player.instance.armed && (int)suspicion >= 1)
+            {
+                attitude = Utility.Attitude.Angry;
+            }
         }
 
-        switch(suspicion)
+        
+
+        switch (suspicion)
         {
             case Utility.Suspicion.Unsuspecting:
-
-            break;
+                TalkCheck();
+                break;
             case Utility.Suspicion.Guarded:
-                if(watchingPlayer)
+                TalkCheck();
+                if(talking)
+                {
+                    talkDuration -= Time.deltaTime;
+                    talkPartner.GetComponent<StateMachine>().talkDuration -= Time.deltaTime;
+                }    
+                if (watchingPlayer)
                 {
                     Vector3 directionToTarget = (eyes.transform.position - Player.instance.transform.position).normalized;
-
+                    transform.LookAt(Player.instance.transform);
                     goalPos = Player.instance.transform.position + (directionToTarget * 3);
+
+                    if (attitude == Utility.Attitude.Angry)
+                    {
+                        Shoot();
+                    }
                 }
                 break;
             case Utility.Suspicion.Alert:
@@ -593,9 +700,13 @@ public class StateMachine : Damagable
                 if (watchingPlayer)
                 {
                     Vector3 directionToTarget = (eyes.transform.position - Player.instance.transform.position).normalized;
-
+                    transform.LookAt(Player.instance.transform);
                     goalPos = Player.instance.transform.position + (directionToTarget * 3);
-                    Shoot();
+
+                    if(attitude == Utility.Attitude.Angry)
+                    {
+                        Shoot();
+                    }
                 }
                 break;
             case Utility.Suspicion.Hunting:
@@ -604,7 +715,11 @@ public class StateMachine : Damagable
                     Vector3 directionToTarget = (eyes.transform.position - Player.instance.transform.position).normalized;
                     transform.LookAt(Player.instance.transform);
                     goalPos = Player.instance.transform.position + (directionToTarget * 3);
-                    Shoot();
+
+                    if (attitude == Utility.Attitude.Angry)
+                    {
+                        Shoot();
+                    }
                 }
                 break;
 
@@ -816,10 +931,40 @@ public class StateMachine : Damagable
         
     }
 
-    public void PlayAudio(int index)
+    public void PlayAudio(int index, Utility.audioType type)
     {
-        Audio.clip = AudioUtility.sounds[index];
-        Audio.Play();
+        AudioSource temp = Instantiate(Resources.Load<GameObject>("AudioNode"), transform.position, transform.rotation).GetComponent<AudioSource>();
+        temp.transform.parent = AudioUtility.instance.transform;
+        switch (type)
+        {
+            case Utility.audioType.Talking:
+                temp.clip = AudioUtility.talkSounds[index];
+                lastAduioType = type;
+                lastClip = index;
+                temp.Play();
+                
+                break;
+            case Utility.audioType.Walking:
+                temp.clip = AudioUtility.walkSounds[index];
+                lastAduioType = type;
+                lastClip = index;
+                temp.Play();
+            
+                break;
+            case Utility.audioType.Useing:
+                temp.clip = AudioUtility.useSounds[index];
+                lastAduioType = type;
+                lastClip = index;
+                temp.Play();
+            
+                break;
+            default:
+                break;
+        }
+
+
+            //Audio.Play();
+        
     }
 
     public void MakeSound(float volume)
@@ -876,7 +1021,7 @@ public class StateMachine : Damagable
         if (gun.useTime <= 0 && gun.uses == 0)
         {
             gun.Reload();
-            PlayAudio(gun.reloadClip);
+            PlayAudio(gun.reloadClip, Utility.audioType.Useing);
         }
         else
         {
@@ -884,11 +1029,11 @@ public class StateMachine : Damagable
             gun.transform.right = directionToTarget;
             if(gun.Use())
             {
-                PlayAudio(gun.useClip);
+                PlayAudio(gun.useClip, Utility.audioType.Useing);
                 MakeSound(gun.useVolume);
                 if (gun.uses == 0)
                 {
-                    PlayAudio(gun.emptyClip);
+                    PlayAudio(gun.emptyClip, Utility.audioType.Useing);
                 }
             }
             

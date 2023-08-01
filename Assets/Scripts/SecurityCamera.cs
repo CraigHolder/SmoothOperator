@@ -53,6 +53,7 @@ public class SecurityCamera : Damagable
         {
             this.enabled = false;
             head.GetComponent<Rigidbody>().isKinematic = false;
+            head.layer = 0;
             InfoDescription = "Destroyed";
         }
        else

@@ -56,4 +56,11 @@ public class Utility
         Searching, //activly looking for strange individuals
         Hunting //activly pusuing a strange individual
     }
+
+    public enum audioType
+    {
+        Talking,
+        Walking,
+        Useing, 
+    }
 }

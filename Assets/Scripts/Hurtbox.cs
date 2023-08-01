@@ -11,11 +11,15 @@ public class Hurtbox : MonoBehaviour
     // Start is called before the first frame update
     void Awake()
     {
-        parent = GetComponentInParent<StateMachine>();
-        if(parent == null)
-        {
-            parent = GetComponentInParent<SecurityCamera>();
-        }
+        parent = GetComponentInParent<Damagable>();
+        //if(parent == null)
+        //{
+        //    parent = GetComponentInParent<SecurityCamera>();
+        //    if (parent == null)
+        //    {
+        //        parent = GetComponentInParent<com>();
+        //    }
+        //}
     }
 
     // Update is called once per frame
