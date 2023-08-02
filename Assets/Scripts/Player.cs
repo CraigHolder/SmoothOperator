@@ -85,7 +85,7 @@ public class Player : StateMachine
         
         if(hit.collider != null)
         {
-            Debug.Log(hit.collider);
+            //Debug.Log(hit.collider);
             Info info = hit.collider.GetComponentInParent<Info>();
 
             if (info != null)
@@ -160,6 +160,18 @@ public class Player : StateMachine
                                 break;
                         }
                     }
+                }
+                else
+                {
+                    Damagable damagable = hit.collider.GetComponent<Damagable>();
+                    if(damagable != null)
+                    {
+                        if (Input.GetKeyDown(KeyCode.E))
+                        {
+                            damagable.Activate();
+                        }
+                    }
+
                 }
             }
             else
@@ -347,8 +359,8 @@ public class Player : StateMachine
             animator.SetBool("Crouch", false);
             hurtboxAnimator.SetBool("Crouch", false);
             Camera.main.transform.localPosition = new Vector3(0, 0.65f, 0f);
-            CC.height = 2;
-            CC.radius = 0.5f;
+            CC.height = 1.75f;
+            CC.radius = 0.3f;
             models.transform.localPosition = new Vector3(0, -1.06f, 0);
             models.transform.localScale = new Vector3(1, 1, 1);
         }
@@ -434,6 +446,16 @@ public class Player : StateMachine
         //final Move
         CC.Move(movement * Time.deltaTime);
 
+        
+    }
+
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        Rigidbody  otherRigidbody = hit.collider.attachedRigidbody;
+        if (otherRigidbody != null && !otherRigidbody.isKinematic)
+        {
+            otherRigidbody.velocity += CC.velocity;
+        }
         
     }
 }

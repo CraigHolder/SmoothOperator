@@ -16,4 +16,9 @@ public class Damagable : Info
     {
         
     }
+
+    public virtual void Activate()
+    {
+
+    }
 }
