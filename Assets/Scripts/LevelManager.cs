@@ -48,6 +48,37 @@ public class LevelManager : MonoBehaviour
     void Awake()
     {
         instance = this;
+        fleePoints = new List<GameObject>();
+        guardPoints = new List<GameObject>();
+        patrolPoints = new List<GameObject>();
+        pathPoints = new List<GameObject>();
+        camPoints = new List<GameObject>();
+
+        Transform temp = transform.Find("PatrolPoints");
+        for (int i = 0; i < temp.childCount; i++)
+        {
+            patrolPoints.Add(temp.GetChild(i).gameObject);
+        }
+        temp = transform.Find("PathPoints");
+        for (int i = 0; i < temp.childCount; i++)
+        {
+            pathPoints.Add(temp.GetChild(i).gameObject);
+        }
+        temp = transform.Find("FleePoints");
+        for (int i = 0; i < temp.childCount; i++)
+        {
+            fleePoints.Add(temp.GetChild(i).gameObject);
+        }
+        temp = transform.Find("GuardPoints");
+        for (int i = 0; i < temp.childCount; i++)
+        {
+            guardPoints.Add(temp.GetChild(i).gameObject);
+        }
+        temp = transform.Find("CamPoints");
+        for (int i = 0; i < temp.childCount; i++)
+        {
+            camPoints.Add(temp.GetChild(i).gameObject);
+        }
     }
 
     // Update is called once per frame
