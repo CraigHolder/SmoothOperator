@@ -12,7 +12,7 @@ public class StateMachine : Damagable
     public List<Utility.StatusEffects> statusEffects;
     public List<float> statusEffectLength;
     public bool male = true;
-    
+
     public float sus = 0;
     public float speed = 0;
 
@@ -142,6 +142,7 @@ public class StateMachine : Damagable
 
         if (healthLevel == Utility.healthLevel.Dead || !gameObject.activeSelf)
         {
+            Ragdoll();
             return;
         }
 
@@ -156,6 +157,8 @@ public class StateMachine : Damagable
             {
                 healthLevel = Utility.healthLevel.Unconsious;
                 AIInfo.GetComponent<Info>().InfoDescription = "Unconsious";
+                Ragdoll();
+                DropItem();
                 Path(transform.position);
 
                 switch (faction)
@@ -873,6 +876,14 @@ public class StateMachine : Damagable
                     {
                         sus += PC.concern;
                     }
+                    else
+                    {
+                        StateMachine SM = target.GetComponentInParent<StateMachine>();
+                        if (SM != null)
+                        {
+                            sus += SM.concern;
+                        }
+                    }
                     //sus += 20 * Time.deltaTime;
                     //set computer screens linked to the camera to convern layer
                 }
@@ -1042,6 +1053,45 @@ public class StateMachine : Damagable
 
     public virtual void DropItem()
     {
+        if(AIHeld != null)
+        {
+            AIHeld.transform.parent = null;
+            //AIHeld.transform.position += Vector3.up;
+            AIHeld.GetComponent<Rigidbody>().isKinematic = false;
+            AIHeld = null;
+        }
+    }
 
+    public virtual void Ragdoll()
+    {
+        AIInfo.gameObject.layer = 8;
+        AIInfo.GetComponent<Info>().concern = 40 * Time.deltaTime;
+
+
+        animator.enabled = false;
+        animatorIK.ikActive = false;
+        animator.GetComponentInChildren<SkinnedMeshRenderer>().updateWhenOffscreen = true;
+        
+        List<Transform> ragdoll = new List<Transform>();
+        List<Transform> hurtbox = new List<Transform>();
+        foreach (Transform g in animator.GetComponentsInChildren<Transform>())
+        {
+            if(g.name != "Jaw")
+            {
+                ragdoll.Add(g);
+            }
+        }
+        foreach (Transform g in hurtboxAnimator.GetComponentsInChildren<Transform>())
+        {
+            hurtbox.Add(g);
+        }
+        for (int i = 0; i < ragdoll.Count; i++)
+        {
+            hurtbox[i].position = ragdoll[i].position;
+            hurtbox[i].rotation = ragdoll[i].rotation;
+        }
+
+        AIInfo.transform.position = ragdoll[3].position;
+        AIInfo.transform.rotation = ragdoll[3].rotation;
     }
 }
