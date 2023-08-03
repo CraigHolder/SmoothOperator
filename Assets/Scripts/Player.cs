@@ -59,7 +59,7 @@ public class Player : StateMachine
         {
             Ragdoll();
             DropItem();
-            Time.timeScale = 0.01f;
+            Time.timeScale = 0.1f;
             Time.fixedDeltaTime = 0.02F * Time.timeScale;
             if (Input.GetKeyDown(KeyCode.E))
             {
