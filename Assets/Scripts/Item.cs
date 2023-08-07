@@ -8,6 +8,7 @@ public class Item : Info
     public int Value = 1;
     public GameObject rHold;
     public GameObject lHold;
+    public bool shop = false;
 
     [Header("Use")]
     public int uses = 1;

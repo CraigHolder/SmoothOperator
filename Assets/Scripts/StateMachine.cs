@@ -12,7 +12,7 @@ public class StateMachine : Damagable
     public List<Utility.StatusEffects> statusEffects;
     public List<float> statusEffectLength;
     public bool male = true;
-    
+
     public float sus = 0;
     public float speed = 0;
 
@@ -44,6 +44,10 @@ public class StateMachine : Damagable
     public Vector3 goalPos;
     public List<GameObject> pathPoints = new List<GameObject>();
     int currentPathPoint = 0;
+    float pathPause = 0;
+    float pathTurnTime = 0f;
+    float pathTurnAmount = 0f;
+    bool pathTurnRight = false;
     public Transform eyes;
     public float visionRange = 10;
     public float visionAngle = 10;
@@ -72,6 +76,9 @@ public class StateMachine : Damagable
         hurtboxAnimatorIK = hurtboxAnimator.GetComponent<IKController>();
 
         nav = GetComponent<NavMeshAgent>();
+        nav.avoidancePriority = 50;
+        //nav.avoidancePriority = LevelManager.currAvoidVal;
+        //LevelManager.currAvoidVal++;
 
         AIInfo.transform.parent = LevelManager.instance.AIInfos.transform;
         AIInfo.GetComponent<Info>().InfoName = InfoName;
@@ -86,7 +93,7 @@ public class StateMachine : Damagable
                 case Utility.Factions.Civilian:
                     LevelManager.instance.ActiveCivilians.Add(this);
 
-                    int pointAmount = Random.Range(1, 20);
+                    int pointAmount = Random.Range(2, 10);
                     for (int i = 0; i < pointAmount; i++)
                     {
                         pathPoints.Add(LevelManager.instance.pathPoints[Random.Range(0, LevelManager.instance.pathPoints.Count)]);
@@ -97,7 +104,7 @@ public class StateMachine : Damagable
                 case Utility.Factions.Security:
                     LevelManager.instance.ActiveSecurity.Add(this);
 
-                    int pointAmount2 = Random.Range(1, 20);
+                    int pointAmount2 = Random.Range(2, 10);
                     for (int i = 0; i < pointAmount2; i++)
                     {
                         pathPoints.Add(LevelManager.instance.patrolPoints[Random.Range(0, LevelManager.instance.patrolPoints.Count)]);
@@ -142,6 +149,7 @@ public class StateMachine : Damagable
 
         if (healthLevel == Utility.healthLevel.Dead || !gameObject.activeSelf)
         {
+            Ragdoll();
             return;
         }
 
@@ -156,6 +164,8 @@ public class StateMachine : Damagable
             {
                 healthLevel = Utility.healthLevel.Unconsious;
                 AIInfo.GetComponent<Info>().InfoDescription = "Unconsious";
+                Ragdoll();
+                DropItem();
                 Path(transform.position);
 
                 switch (faction)
@@ -256,6 +266,7 @@ public class StateMachine : Damagable
 
         animator.SetFloat("Walk", 1);
         hurtboxAnimator.SetFloat("Walk", 1);
+        nav.avoidancePriority = 50;
         switch (faction)
         {
             case Utility.Factions.Civilian:
@@ -276,7 +287,7 @@ public class StateMachine : Damagable
 
     public void FollowPath()
     {
-        if (wanders)
+        if (wanders && pathPause <= 0)
         {
             if (!nav.hasPath)
             {
@@ -285,10 +296,10 @@ public class StateMachine : Damagable
                 if (Vector3.Distance(pathPoints[currentPathPoint].transform.position, transform.position) < 3)
                 {
                     currentPathPoint++;
+                    pathPause = Random.Range(0.5f, 10);
                     if (currentPathPoint >= pathPoints.Count)
                     {
                         currentPathPoint = 0;
-
                     }
                 }
             }
@@ -297,13 +308,65 @@ public class StateMachine : Damagable
                 if (Vector3.Distance(pathPoints[currentPathPoint].transform.position, transform.position) < 3)
                 {
                     currentPathPoint++;
+                    pathPause = Random.Range(0.5f, 10);
                     if (currentPathPoint >= pathPoints.Count)
                     {
                         currentPathPoint = 0;
-
                     }
                 }
             }
+        }
+        else
+        {
+            pathPause -= Time.deltaTime;
+            if(!nav.hasPath)
+            {
+                animator.SetFloat("Walk", 0);
+                hurtboxAnimator.SetFloat("Walk", 0);
+                nav.avoidancePriority = 0;
+
+                if(sus > 50)
+                {
+                    float rot = 0;
+                    
+                    pathTurnTime += Time.deltaTime;
+                    if(pathTurnTime > 4)
+                    {
+                        pathTurnAmount = Random.Range(0f,220f);
+                        pathTurnTime = 0;
+                        if(Random.Range(0, 2) == 0)
+                        {
+                            pathTurnRight = true;
+                        }
+                        else
+                        {
+                            pathTurnRight = false;
+                        }
+
+                    }
+
+                    if(pathTurnRight)
+                    {
+                        transform.Rotate(0, (pathTurnAmount / 4f) * Time.deltaTime, 0);
+                    }
+                    else
+                    {
+                        transform.Rotate(0, -(pathTurnAmount / 4f) * Time.deltaTime, 0);
+                    }
+
+                    //    rot = Mathf.Lerp(transform.rotation.eulerAngles.y, pathTurnAmount, (pathTurnTime / 5));
+                    //if(pathTurnRight)
+                    //{
+                    //    transform.rotation = Quaternion.Euler(0, rot, 0);
+                    //}
+                    //else
+                    //{
+                    //    transform.rotation = Quaternion.Euler(0, -rot, 0);
+                    //}
+                        
+                }
+            }
+            
         }
     }
 
@@ -319,6 +382,9 @@ public class StateMachine : Damagable
 
                 goalPos = transform.position;//talkPartner.transform.position + (directionToTarget * 2);
                 transform.LookAt(talkPartner.transform);
+                animator.SetFloat("Walk", 0);
+                hurtboxAnimator.SetFloat("Walk", 0);
+                nav.avoidancePriority = 0;
                 //goalPos = talkPartner.transform.position;
             }
             if(talkDuration <=0)
@@ -868,10 +934,17 @@ public class StateMachine : Damagable
                 Debug.DrawRay(eyes.position, directionToTarget * (distanceToTarget), Color.green, 0.1f);
                 if (!Physics.Raycast(eyes.position, directionToTarget, distanceToTarget, obstructionMask))
                 {
-                    Computer PC = target.GetComponent<Computer>();
-                    if(PC != null)
+                    Info info = target.GetComponentInParent<Info>();
+                    if (info != null)
                     {
-                        sus += PC.concern;
+                        sus += info.concern;
+                        if(faction == Utility.Factions.Security || faction == Utility.Factions.Criminal)
+                        {
+                            if(info.angering)
+                            {
+                                attitude = Utility.Attitude.Angry;
+                            }
+                        }
                     }
                     //sus += 20 * Time.deltaTime;
                     //set computer screens linked to the camera to convern layer
@@ -1042,6 +1115,55 @@ public class StateMachine : Damagable
 
     public virtual void DropItem()
     {
+        if(AIHeld != null)
+        {
+            AIHeld.transform.parent = null;
+            //AIHeld.transform.position += Vector3.up;
+            AIHeld.GetComponent<Rigidbody>().isKinematic = false;
+            AIHeld = null;
+        }
+    }
 
+    public virtual void Ragdoll()
+    {
+        AIInfo.gameObject.layer = 8;
+        AIInfo.GetComponent<Info>().concern = 40 * Time.deltaTime;
+        
+
+
+        animator.enabled = false;
+        animatorIK.ikActive = false;
+        animator.GetComponentInChildren<SkinnedMeshRenderer>().updateWhenOffscreen = true;
+        
+        List<Transform> ragdoll = new List<Transform>();
+        List<Transform> hurtbox = new List<Transform>();
+        foreach (Transform g in animator.GetComponentsInChildren<Transform>())
+        {
+            if(g.name != "Jaw")
+            {
+                ragdoll.Add(g);
+            }
+        }
+        foreach (Transform g in hurtboxAnimator.GetComponentsInChildren<Transform>())
+        {
+            hurtbox.Add(g);
+        }
+        for (int i = 0; i < ragdoll.Count; i++)
+        {
+            hurtbox[i].position = ragdoll[i].position;
+            hurtbox[i].rotation = ragdoll[i].rotation;
+        }
+
+        AIInfo.transform.position = ragdoll[3].position;
+        AIInfo.transform.rotation = ragdoll[3].rotation;
+
+        if (Vector3.Distance(Player.instance.transform.position, AIInfo.transform.position) < 3)
+        {
+            AIInfo.GetComponent<Info>().angering = true;
+        }
+        else
+        {
+            AIInfo.GetComponent<Info>().angering = false;
+        }
     }
 }

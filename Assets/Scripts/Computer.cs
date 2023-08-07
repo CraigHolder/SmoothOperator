@@ -6,7 +6,6 @@ public class Computer : Damagable
 {
     public static List<Computer> allPCs;
     public bool online = true;
-    public float concern = 0;
     // Start is called before the first frame update
     void Awake()
     {

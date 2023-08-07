@@ -5,6 +5,7 @@ using UnityEngine;
 public class LevelManager : MonoBehaviour
 {
     public static LevelManager instance;
+    public static int currAvoidVal = 0;
     public GameObject AIInfos;
 
     [Header("LevelInfo")]

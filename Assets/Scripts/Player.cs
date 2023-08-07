@@ -55,21 +55,27 @@ public class Player : StateMachine
     // Update is called once per frame
     void LateUpdate()
     {
-        if(Input.GetKey(KeyCode.LeftAlt))
-        {
-            return;
-        }
-        Move();
-        Inventory();
-
         if(health <= 0)
         {
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            Ragdoll();
+            DropItem();
+            Time.timeScale = 0.1f;
+            Time.fixedDeltaTime = 0.02F * Time.timeScale;
+            if (Input.GetKeyDown(KeyCode.E))
+            {
+                Time.timeScale = 1;
+                Time.fixedDeltaTime = 0.02F;
+                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            }
+            return;
         }
-        if(health < 50)
+        else if(health < 50)
         {
             healthLevel = Utility.healthLevel.Wounded;
         }
+
+        Move();
+        Inventory();
 
     }
 
@@ -98,66 +104,139 @@ public class Player : StateMachine
                 {
                     if (Input.GetKeyDown(KeyCode.E))
                     {
-                        DropItem();
-
-                        hotbarOBJ[selectedHotbar].transform.GetChild(1).GetComponent<TMPro.TMP_Text>().text = item.InfoName;
-
-                        switch (item.type)
+                        if(item.shop)
                         {
-                            case Utility.ItemType.Equipment:
-                                hotBar[selectedHotbar] = item;
-                                item.transform.parent = transform;
-                                item.GetComponent<Rigidbody>().isKinematic = true;
-
-                                if (item.rHold != null)
+                            if (BaseManager.instance.BuyItem(item.Value))
+                            {
+                                DropItem();
+                                hotbarOBJ[selectedHotbar].transform.GetChild(1).GetComponent<TMPro.TMP_Text>().text = item.InfoName;
+                                item = Instantiate(item.gameObject, item.transform.position, item.transform.rotation).GetComponent<Item>();
+                                switch (item.type)
                                 {
-                                    animatorIK.rightHandObj = item.rHold.transform;
-                                }
-                                if (item.lHold != null)
-                                {
-                                    animatorIK.leftHandObj = item.lHold.transform;
-                                }
-                                break;
-                            case Utility.ItemType.Gun:
-                                hotBar[selectedHotbar] = item;
-                                item.transform.parent = Camera.main.transform;
-                                item.GetComponent<Rigidbody>().isKinematic = true;
-                                item.transform.localPosition = new Vector3(0, -0.2f, 0.5f);
-                                item.transform.localRotation = Quaternion.Euler(0, -90, 7.4f);
+                                    case Utility.ItemType.Equipment:
+                                        hotBar[selectedHotbar] = item;
+                                        item.transform.parent = transform;
+                                        item.GetComponent<Rigidbody>().isKinematic = true;
 
-                                if (item.rHold != null)
-                                {
-                                    animatorIK.rightHandObj = item.rHold.transform;
-                                }
-                                if (item.lHold != null)
-                                {
-                                    animatorIK.leftHandObj = item.lHold.transform;
-                                }
-                                break;
-                            case Utility.ItemType.Melee:
-                                hotBar[selectedHotbar] = item;
-                                item.transform.parent = transform;
-                                item.GetComponent<Rigidbody>().isKinematic = true;
+                                        if (item.rHold != null)
+                                        {
+                                            animatorIK.rightHandObj = item.rHold.transform;
+                                        }
+                                        if (item.lHold != null)
+                                        {
+                                            animatorIK.leftHandObj = item.lHold.transform;
+                                        }
+                                        break;
+                                    case Utility.ItemType.Gun:
+                                        hotBar[selectedHotbar] = item;
+                                        item.transform.parent = Camera.main.transform;
+                                        item.GetComponent<Rigidbody>().isKinematic = true;
+                                        item.transform.localPosition = new Vector3(0, -0.2f, 0.5f);
+                                        item.transform.localRotation = Quaternion.Euler(0, -90, 7.4f);
 
-                                if (item.rHold != null)
-                                {
-                                    animatorIK.rightHandObj = item.rHold.transform;
+                                        if (item.rHold != null)
+                                        {
+                                            animatorIK.rightHandObj = item.rHold.transform;
+                                        }
+                                        if (item.lHold != null)
+                                        {
+                                            animatorIK.leftHandObj = item.lHold.transform;
+                                        }
+                                        break;
+                                    case Utility.ItemType.Melee:
+                                        hotBar[selectedHotbar] = item;
+                                        item.transform.parent = transform;
+                                        item.GetComponent<Rigidbody>().isKinematic = true;
+
+                                        if (item.rHold != null)
+                                        {
+                                            animatorIK.rightHandObj = item.rHold.transform;
+                                        }
+                                        if (item.lHold != null)
+                                        {
+                                            animatorIK.leftHandObj = item.lHold.transform;
+                                        }
+
+                                        break;
+                                    case Utility.ItemType.Value:
+                                        money += item.Value;
+                                        Destroy(item.gameObject);
+
+                                        break;
+                                    case Utility.ItemType.Environment:
+                                        item.Use();
+
+                                        break;
                                 }
-                                if (item.lHold != null)
-                                {
-                                    animatorIK.leftHandObj = item.lHold.transform;
-                                }
+                            }
+                            else
+                            {
+                                PlayAudio(0,Utility.audioType.Useing);
+                            }
+                        }
+                        else
+                        {
+                            DropItem();
 
-                                break;
-                            case Utility.ItemType.Value:
-                                money += item.Value;
-                                Destroy(item.gameObject);
+                            hotbarOBJ[selectedHotbar].transform.GetChild(1).GetComponent<TMPro.TMP_Text>().text = item.InfoName;
 
-                                break;
-                            case Utility.ItemType.Environment:
-                                item.Use();
+                            switch (item.type)
+                            {
+                                case Utility.ItemType.Equipment:
+                                    hotBar[selectedHotbar] = item;
+                                    item.transform.parent = transform;
+                                    item.GetComponent<Rigidbody>().isKinematic = true;
 
-                                break;
+                                    if (item.rHold != null)
+                                    {
+                                        animatorIK.rightHandObj = item.rHold.transform;
+                                    }
+                                    if (item.lHold != null)
+                                    {
+                                        animatorIK.leftHandObj = item.lHold.transform;
+                                    }
+                                    break;
+                                case Utility.ItemType.Gun:
+                                    hotBar[selectedHotbar] = item;
+                                    item.transform.parent = Camera.main.transform;
+                                    item.GetComponent<Rigidbody>().isKinematic = true;
+                                    item.transform.localPosition = new Vector3(0, -0.2f, 0.5f);
+                                    item.transform.localRotation = Quaternion.Euler(0, -90, 7.4f);
+
+                                    if (item.rHold != null)
+                                    {
+                                        animatorIK.rightHandObj = item.rHold.transform;
+                                    }
+                                    if (item.lHold != null)
+                                    {
+                                        animatorIK.leftHandObj = item.lHold.transform;
+                                    }
+                                    break;
+                                case Utility.ItemType.Melee:
+                                    hotBar[selectedHotbar] = item;
+                                    item.transform.parent = transform;
+                                    item.GetComponent<Rigidbody>().isKinematic = true;
+
+                                    if (item.rHold != null)
+                                    {
+                                        animatorIK.rightHandObj = item.rHold.transform;
+                                    }
+                                    if (item.lHold != null)
+                                    {
+                                        animatorIK.leftHandObj = item.lHold.transform;
+                                    }
+
+                                    break;
+                                case Utility.ItemType.Value:
+                                    money += item.Value;
+                                    Destroy(item.gameObject);
+
+                                    break;
+                                case Utility.ItemType.Environment:
+                                    item.Use();
+
+                                    break;
+                            }
                         }
                     }
                 }
@@ -451,11 +530,42 @@ public class Player : StateMachine
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
-        Rigidbody  otherRigidbody = hit.collider.attachedRigidbody;
-        if (otherRigidbody != null && !otherRigidbody.isKinematic)
+        if(health > 0)
         {
-            otherRigidbody.velocity += CC.velocity;
+            Rigidbody otherRigidbody = hit.collider.attachedRigidbody;
+            if (otherRigidbody != null && !otherRigidbody.isKinematic)
+            {
+                otherRigidbody.velocity += CC.velocity;
+            }
         }
-        
+    }
+    public override void Ragdoll()
+    {
+        animator.transform.parent = null;
+        animator.enabled = false;
+        animatorIK.ikActive = false;
+        animator.GetComponentInChildren<SkinnedMeshRenderer>().updateWhenOffscreen = true;
+
+        List<Transform> ragdoll = new List<Transform>();
+        List<Transform> hurtbox = new List<Transform>();
+        foreach (Transform g in animator.GetComponentsInChildren<Transform>())
+        {
+            if (g.name != "Jaw")
+            {
+                ragdoll.Add(g);
+            }
+        }
+        foreach (Transform g in hurtboxAnimator.GetComponentsInChildren<Transform>())
+        {
+            hurtbox.Add(g);
+        }
+        for (int i = 0; i < ragdoll.Count; i++)
+        {
+            hurtbox[i].position = ragdoll[i].position;
+            hurtbox[i].rotation = ragdoll[i].rotation;
+        }
+
+        //AIInfo.transform.position = ragdoll[3].position;
+        //AIInfo.transform.rotation = ragdoll[3].rotation;
     }
 }

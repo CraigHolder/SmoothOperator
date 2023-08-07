@@ -556,6 +556,7 @@ MonoBehaviour:
   Value: 1
   rHold: {fileID: 8228402505045365272}
   lHold: {fileID: 0}
+  shop: 0
   uses: 8
   maxUses: 8
   ExtraUses: 16
@@ -567,7 +568,7 @@ MonoBehaviour:
   emptyClip: 0
   mask:
     serializedVersion: 2
-    m_Bits: 128
+    m_Bits: 129
   damage: 10
   tip: {fileID: 8573788225164161500}
 --- !u!1 &7937960730667839956
