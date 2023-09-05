@@ -437,6 +437,77 @@ public class StateMachine : Damagable
         
     }
 
+    void FindHelp()
+    {
+        float dist = Mathf.Infinity;
+        int closest = 0;
+        bool alarmClosest = false;
+
+        for (int i = 0; i < LevelManager.instance.ActiveSecurity.Count; i++)
+        {
+            float temp = Vector3.Distance(transform.position, LevelManager.instance.ActiveSecurity[i].transform.position);
+            if (temp < dist)
+            {
+                dist = temp;
+                closest = i;
+            }
+
+
+        }
+
+        for (int i = 0; i < LevelManager.instance.ActiveAlarms.Count; i++)
+        {
+            float temp = Vector3.Distance(transform.position, LevelManager.instance.ActiveAlarms[i].transform.position);
+            if (temp < dist)
+            {
+                dist = temp;
+                closest = i;
+                alarmClosest = true;
+            }
+
+
+        }
+
+        if (!alarmClosest)
+        {
+            if (LevelManager.instance.ActiveSecurity.Count > 0)
+            {
+                if (LevelManager.instance.ActiveSecurity[closest] != null)
+                {
+                    goalPos = LevelManager.instance.ActiveSecurity[closest].transform.position;
+                    if (dist <= 3)
+                    {
+                        LevelManager.instance.ActiveSecurity[closest].Alert();
+                        attitude = Utility.Attitude.Afraid;
+                    }
+                }
+            }
+            else
+            {
+                attitude = Utility.Attitude.Afraid;
+            }
+        }
+        else
+        {
+            if (LevelManager.instance.ActiveAlarms.Count > 0)
+            {
+                if (LevelManager.instance.ActiveAlarms[closest] != null)
+                {
+                    goalPos = LevelManager.instance.ActiveAlarms[closest].transform.position;
+                    if (dist <= 3)
+                    {
+                        LevelManager.instance.ActiveAlarms[closest].Activate();
+                        attitude = Utility.Attitude.Afraid;
+                    }
+                }
+            }
+            else
+            {
+                attitude = Utility.Attitude.Afraid;
+            }
+        }
+    }
+
     public void CivilianBrain()
     {
         if (!statusEffects.Contains(Utility.StatusEffects.Stunned))
@@ -525,37 +596,7 @@ public class StateMachine : Damagable
 
                 if(sus > 50)
                 {
-                    float dist = Mathf.Infinity;
-                    int closest = 0;
-
-                    for (int i = 0; i < LevelManager.instance.ActiveSecurity.Count; i++)
-                    {
-                        float temp = Vector3.Distance(transform.position, LevelManager.instance.ActiveSecurity[i].transform.position);
-                        if (temp < dist)
-                        {
-                            dist = temp;
-                            closest = i;
-                        }
-
-
-                    }
-                    
-
-                    if (LevelManager.instance.ActiveSecurity.Count > 0)
-                    {
-                        if (LevelManager.instance.ActiveSecurity[closest] != null)
-                        {
-                            goalPos = LevelManager.instance.ActiveSecurity[closest].transform.position;
-                            if (dist <= 3)
-                            {
-                                LevelManager.instance.ActiveSecurity[closest].Alert();
-                            }
-                        }
-                    }
-                    else
-                    {
-                        attitude = Utility.Attitude.Afraid;
-                    }
+                    FindHelp();
                 }
                 else
                 {
@@ -572,41 +613,13 @@ public class StateMachine : Damagable
                 if (watchingPlayer && Player.instance.armed && (int)suspicion >= 1)
                 {
                     attitude = Utility.Attitude.Afraid;
-                }
+                } 
 
                 if (sus > 50)
                 {
-                    float dist = Mathf.Infinity;
-                    int closest = 0;
-
-                    for (int i = 0; i < LevelManager.instance.ActiveSecurity.Count; i++)
-                    {
-                        float temp = Vector3.Distance(transform.position, LevelManager.instance.ActiveSecurity[i].transform.position);
-                        if (temp < dist)
-                        {
-                            dist = temp;
-                            closest = i;
-                        }
+                    FindHelp();
 
 
-                    }
-
-
-                    if (LevelManager.instance.ActiveSecurity.Count > 0)
-                    {
-                        if (LevelManager.instance.ActiveSecurity[closest] != null)
-                        {
-                            goalPos = LevelManager.instance.ActiveSecurity[closest].transform.position;
-                            if (dist <= 3)
-                            {
-                                LevelManager.instance.ActiveSecurity[closest].Alert();
-                            }
-                        }
-                    }
-                    else
-                    {
-                        attitude = Utility.Attitude.Afraid;
-                    }
                 }
                 else
                 {

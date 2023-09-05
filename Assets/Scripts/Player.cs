@@ -201,7 +201,7 @@ public class Player : StateMachine
                                     item.transform.parent = Camera.main.transform;
                                     item.GetComponent<Rigidbody>().isKinematic = true;
                                     item.transform.localPosition = new Vector3(0, -0.2f, 0.5f);
-                                    item.transform.localRotation = Quaternion.Euler(0, -90, 7.4f);
+                                    item.transform.localRotation = Quaternion.Euler(0, -90, 0f);
 
                                     if (item.rHold != null)
                                     {
@@ -344,14 +344,14 @@ public class Player : StateMachine
         {
             if (hotBar[selectedHotbar] != null)
             {
-                hotBar[selectedHotbar].transform.localPosition = new Vector3(0, 0f, 0.5f);
+                hotBar[selectedHotbar].transform.localPosition = hotBar[selectedHotbar].aimPos;//new Vector3(0, 0f, 0.5f);
             }
         }
         else
         {
             if (hotBar[selectedHotbar] != null)
             {
-                hotBar[selectedHotbar].transform.localPosition = new Vector3(0, -0.2f, 0.5f);
+                hotBar[selectedHotbar].transform.localPosition = hotBar[selectedHotbar].holdPos;//new Vector3(0, 0.2f, 0.5f);
             }
         }
 

@@ -552,11 +552,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   InfoName: Compact Pistol
   InfoDescription: Small and concealable
+  concern: 0
+  angering: 0
   type: 1
   Value: 1
   rHold: {fileID: 8228402505045365272}
   lHold: {fileID: 0}
   shop: 0
+  holdPos: {x: 0, y: -0.2, z: 0.5}
+  aimPos: {x: 0, y: -0.07, z: 0.5}
   uses: 8
   maxUses: 8
   ExtraUses: 16
