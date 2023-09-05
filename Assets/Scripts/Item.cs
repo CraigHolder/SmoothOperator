@@ -9,6 +9,8 @@ public class Item : Info
     public GameObject rHold;
     public GameObject lHold;
     public bool shop = false;
+    public Vector3 holdPos = Vector3.zero;
+    public Vector3 aimPos = Vector3.zero;
 
     [Header("Use")]
     public int uses = 1;

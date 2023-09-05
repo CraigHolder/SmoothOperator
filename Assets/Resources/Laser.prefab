@@ -198,5 +198,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mask:
     serializedVersion: 2
-    m_Bits: 2147483647
+    m_Bits: 1409
   security: 0
+  connected: {fileID: 0}
+  range: 100

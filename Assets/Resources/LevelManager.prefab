@@ -257,6 +257,7 @@ MonoBehaviour:
   - {fileID: 3408532621927711444}
   camPoints: []
   laserPoints: []
+  ActiveAlarms: []
   Difficulty: 1
   ActiveSecurity: []
   ActiveCriminals: []
@@ -713,6 +714,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: cef0fa03af5b747f0abe82cde0b2bccc, type: 3}
   - {fileID: 8300000, guid: 34b439bf70b80a6409eadecc6be92d68, type: 3}
   - {fileID: 8300000, guid: 1b766da7cc2d648aa84e36cb5fe8abcb, type: 3}
+  - {fileID: 8300000, guid: 89e6bc608da7b47d4914f3d9c2484e48, type: 3}
   walkClips:
   - {fileID: 8300000, guid: 5e265270fb85126479eef52d8fce3b08, type: 3}
   - {fileID: 8300000, guid: 3701a5fdf99882f40bc00eb9053eec92, type: 3}

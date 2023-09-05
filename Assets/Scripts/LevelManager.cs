@@ -17,6 +17,8 @@ public class LevelManager : MonoBehaviour
     public List<GameObject> camPoints;
     public List<GameObject> laserPoints;
 
+    public List<Alarm> ActiveAlarms = new List<Alarm>();
+
     [Header("MissionInfo")]
     public int Difficulty = 1;
 
